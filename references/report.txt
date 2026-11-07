@@ -1,0 +1,129 @@
+The audit found the suspected scheduling error in the **user-supplied sanitized snapshot**: both backup jobs use `* 11 * * *`, scheduling **60 executions per job each day, from 11:00 through 11:59**. Live scheduling was deliberately not queried.
+
+**No changes were made.** No scripts, applications, builds, exports, restores, mutation endpoints, Git updates, or service changes were run.
+
+### Component map
+
+“Active” below means supported by configuration or recent logs; it does not certify current health.
+
+| Exact path | Status | Purpose and entry points |
+|---|---|---|
+| `/Users/alejandroveloz/Sites/am-playless-api` | Active evidence | Koa HTTP API in `index.js` / `controller.js`; MongoDB track inventory; Apple Music library and playlist writes. Its `scripts/` contains both Saturday collectors. |
+| `/Users/alejandroveloz/Sites/am-playless-jquery` | Maintained; deployment uncertain | `public/index.html` provides MusicKit authentication, playback, and playlist assignment. `public/playless/index.html` provides the discovery queue and points to `http://localhost:8001`. |
+| `/Users/alejandroveloz/Sites/am-utilities` | Supporting tools | Apple Music developer-token generator and music-data experiments. |
+| `/Users/alejandroveloz/Sites/soft-keep` | Likely legacy | Older API/collector source at a shared historical commit; also contains untracked `generator/` and `ondeck/` directories. |
+| `/Users/alejandroveloz/Documents/alej-music-osx` | Active-use evidence; deployed revision uncertain | Objective-C Cocoa app using ScriptingBridge to control Music.app, with a bundled GCDWebServer HTTP bridge. Current branch: `caching`. |
+
+No additional `am-` directories were present directly under `Sites`. No applicable `AGENTS.md` was found in the inspected ancestry or components.
+
+**The current tagging webpage was not located.** The inspected jQuery pages serve authentication, playlist assignment, and discovery; they do not establish the source of the interface calling the Mac tagging bridge. This remains an explicit discovery gap.
+
+Deployment documentation is limited: the API README describes `nodemon` and a local PHP server; utility instructions describe manually pulling the frontend on a personal server. They do not verify today’s deployed configuration.
+
+### Git differences and work to preserve
+
+All comparisons used existing Git objects. **Remote-tracking references may be stale.**
+
+| Repository | Stored comparison and preservation finding |
+|---|---|
+| `am-playless-api` | Clean tracked working tree. `master` at `faa7576`, one commit ahead of `origin/master`. The local commit changes playlist selection and ordering. Preserve it. |
+| `am-playless-jquery` | Clean; `main` equals stored `origin/main` at `ebbaaa6`, “Update token,” dated October 16, 2026. |
+| `am-utilities` | Clean; `main` equals stored `origin/main` at `7246d01`. |
+| `soft-keep` | Tracked files clean; `master` equals stored upstream. **Preserve untracked `generator/` and `ondeck/`**, including their configuration and key material. |
+| `alej-music-osx` | Tracked files clean on `caching` at `433bbb9`, matching stored `origin/caching`. Preserve untracked `.DS_Store` and Xcode user/workspace data. |
+
+The Mac branches contain different work:
+
+- `caching` is 21 commits beyond `master`, including the HTTP bridge and substantial tagging UI changes.
+- Local `quickUpdates` is three commits behind stored `origin/quickUpdates`: tag placement, Funk genre, and NFC convenience.
+- `caching` adds search caching but lacks those three changes. Comparing it with `origin/quickUpdates` changes both `AppDelegate.m` and `MainMenu.xib`.
+
+A later authorized fetch is required before treating any upstream comparison as current. No branch should be discarded or selected as canonical solely from this snapshot.
+
+### Cron and backup findings
+
+The evidence source is [crontab-redacted.txt](/Users/alejandroveloz/Documents/alejmusic-audit/crontab-redacted.txt), not independently verified live configuration.
+
+| Job | Snapshot schedule | Paths, outputs, and logging |
+|---|---|---|
+| DNS updater | Hourly, minute 0 | Absolute Desktop script; appends stdout/stderr to `dns-log.txt`. |
+| Playlist collector | Saturday 10:00 | Changes into `am-playless-api/scripts`; uses `/usr/local/bin/node`; appends stdout/stderr to `playlist-log.txt`. |
+| HHH collector | Saturday 10:00 | Same working directory/runtime; appends stdout/stderr to `hhh-log.txt`. |
+| Mongo export | Every minute during 11 a.m., daily | Homebrew MongoDB 4.2 `mongoexport`; local `ondeck.tracks` → fixed Dropbox `ondeck.json`. **No file redirection shown.** |
+| HHH backup | Every minute during 11 a.m., daily | `cp -r` from collector `scripts/hhh` into the fixed Dropbox backup directory. **No file redirection shown.** |
+
+Both backup commands use absolute paths but specify no working directory. Neither has an overlap guard or a dependency on collector success.
+
+**What execution evidence establishes:**
+
+- `ondeck.json`: **24,346,255 bytes**, modified **November 5, 2026, 11:59:03**.
+- Current Dropbox HHH directory: **296 files, 4,008,043 bytes**; representative files modified around **11:59 on November 5**.
+- Source HHH directory has the same file count and aggregate size. This is metadata agreement, not content verification.
+- Retained `ondeck 2025-07-12.json`: **18,874,652 bytes**, modified **July 16, 2025, 11:59:03**.
+- `hhh old?`: **232 files, 2,952,835 bytes**, with representative July 16, 2025, 11:59 timestamps.
+- Another retained ondeck export is dated October 28, 2023, at 11:00.
+
+These are consistent with backup activity at those times. **They do not demonstrate 60 executions, successful exports, or process overlap.** No inspected log recorded repeated backup invocations within one hour. The first historical occurrence of the every-minute behavior therefore remains unproven.
+
+The snapshot’s commented older commands document a previous `alej-music-web/ondeck` location, but provide no date for the scheduling mistake.
+
+**Retention behavior and gaps:**
+
+- Mongo export repeatedly targets one filename: an overwritten snapshot, not automatic historical retention.
+- HHH copy merges into one destination, replacing same-name files and retaining destination-only files. It creates neither a dated backup set nor an exact mirror.
+- The separately named historical copies provide some recovery options, but their creation process is undocumented.
+- No dedicated backup stdout/stderr capture is shown or was identified. Cron mail delivery was not inspected.
+- Export completeness, restoration, Dropbox synchronization/version history, database indexes, and other collections were not verified.
+
+**Likely correction for review:** use `0 11 * * SAT` for both backups if “shortly after” means one hour after the Saturday collectors. If daily snapshots are intentional, use `0 11 * * *`. Either choice still needs later review of failure handling, overlap prevention, retention, and backup logging. Nothing was changed.
+
+### Runtime flows and prioritized findings
+
+1. **Unauthenticated HTTP writes deserve priority.**  
+   The Mac bridge starts on port **7305**, exposes permissive CORS, and shows no authentication or TLS setup in the inspected application handlers. GET routes `/rate`, `/loved`, `/energy`, `/mood`, and `/tag` write Music metadata. `/ip`, `/now_playing`, and `/song_info` are informational handlers. External reachability was not tested.  
+   Evidence: [AppDelegate.m](/Users/alejandroveloz/Documents/alej-music-osx/alejmusic/AppDelegate.m:763).
+
+   The Node API likewise shows permissive CORS and no incoming authentication middleware. GET `/tracks/:catalog_id/dismiss` writes MongoDB; GET `/tracks/:catalog_id/add` writes Apple Music before updating MongoDB. Partial failures can leave those systems inconsistent.  
+   Evidence: [index.js](/Users/alejandroveloz/Sites/am-playless-api/index.js:1), [controller.js](/Users/alejandroveloz/Sites/am-playless-api/controller.js:86).
+
+2. **Credential storage and error logging need follow-up.**  
+   The supplied scheduling evidence represents a plaintext database password; rotation and safer storage remain follow-up actions. API/script `.env` files and the developer signing key have mode **0644**, permitting other local users to read them where directory permissions allow. A second signing-key copy exists under the legacy `soft-keep/generator` directory.
+
+   The token generator signs ES256 developer tokens for **180 days**. Documented renewal manually updates the frontend, authenticates through MusicKit, and copies tokens into two `.env` files. Frontend code prints authentication tokens; collectors/API handlers log whole Axios errors, which can include credential-bearing request headers. Secret values were not reproduced.  
+   Evidence: [utility instructions](/Users/alejandroveloz/Sites/am-utilities/README.md:3), [generator](/Users/alejandroveloz/Sites/am-utilities/apple-music-token-generator/generate.js:11).
+
+3. **Collector completion does not mean complete success.**  
+   The playlist collector reads Apple Music catalog playlists, matches MongoDB records by catalog ID, and updates source membership/date ranges and discovery records. It continues after playlist retrieval failures, does not follow track pagination in the inspected function, does not await `insertOne`, and exits with status **1 even after normal completion**.  
+   Evidence: [collector](/Users/alejandroveloz/Sites/am-playless-api/scripts/collectTracksFromAmPlaylist.js:438).
+
+   Recent logs show runs completing October **17, 24, and 31**, with processing/insertion messages, but **Vibes retrieval failed with authorization errors in all three**. Older representative logs show recurring 401/Unauthorized periods across multiple years. Logged insertion counts are application reports, not independently verified database writes.
+
+4. **Matching and caching can produce incorrect or stale results.**  
+   The Mac bridge searches Music by name, then compares lowercase name, artist, and album exactly. `/song_info` rejects multiple matches, while mutation handlers select the first match whenever at least one exists. Missing query values can also reach dictionary construction without validation.
+
+   The `caching` branch retains up to 100 search results, including serialized metadata, without visible invalidation after writes. Subsequent reads can therefore return stale metadata.  
+   Evidence: [matching/cache](/Users/alejandroveloz/Documents/alej-music-osx/alejmusic/AppDelegate.m:1148).
+
+5. **HHH collection has recent positive evidence; DNS logs require careful interpretation.**  
+   HHH uses Reddit credentials from the scripts environment, searches `/r/hiphopheads`, filters title and author, and writes sanitized timestamp/title Markdown filenames relative to `scripts/`. It stops at an already-existing matching file. The October 31 log records creation of the October 30 post and completion at **10:00:02**. Historical samples include errors, including a 403.  
+   Evidence: [scraper](/Users/alejandroveloz/Sites/am-playless-api/scripts/findHhhNewMusicFriday.js:21), [HHH log](/Users/alejandroveloz/Desktop/hhh-log.txt).
+
+   DNS uses `curl` against Namecheap’s dynamic-DNS service. Recent sampled responses report `ErrCount=0` and `Done=true`. The word “error” appears inside response markup and must not be counted as a failure by itself. Log modification times do not establish current DNS correctness.  
+   Evidence: [DNS script](/Users/alejandroveloz/Desktop/dns.sh:19).
+
+The bridge log contains ordinary search/tagging activity, no-match results, and numerous “Default handler” entries. Its timestamps contain only time of day, and default-handler logging omits the request path and client. Those entries cannot establish their origin or compromise. No crash was demonstrated by the bounded samples.
+
+### Unknowns and limits
+
+- No requested location returned an access denial. An initial shell here-document was blocked by the read-only environment; subsequent inspection used commands requiring no temporary file.
+- Desktop local/Dropbox/archive references are Finder alias files. Their targets were not resolved or traversed.
+- The current tagging webpage, deployed frontend revision, running Mac binary revision, API startup mechanism, and network exposure remain unknown.
+- No independent historical schedule copy or backup execution log was identified.
+- Log reads were bounded recent and representative historical samples. Missing evidence does not mean a job did not run.
+- No protected system logs, live scheduler configuration, database contents, or excluded applications were inspected.
+
+### Recommended next milestone and handoff
+
+Use the **Mac mini that hosts Music.app and these data paths** for a supervised, bounded operational-baseline milestone: locate the tagging client, identify the deployed app/API revisions, review the Saturday schedule correction, and specify backup success/error recording and recoverability checks. Keep implementation separate until those concrete changes are reviewed.
+
+**Command-center handoff:** the supplied snapshot schedules both backups 60 times daily; actual repeated execution and its start date are unproven. Preserve the API’s unpublished commit, Mac branch-specific work, and legacy untracked directories. Recent collectors ran with partial playlist authorization failures. Prioritize backup scheduling/observability, credential handling, and authenticated transport. **Audit changes: none.**
