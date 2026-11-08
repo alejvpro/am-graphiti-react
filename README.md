@@ -23,3 +23,5 @@ See [architecture and capability inventory](docs/architecture.md), [reference an
 R1.1 follows the original Option B renders with all main controls visible on one screen in tested 402×874 and reduced 402×714 viewports. Stars accept half-star taps/clicks and arrow keys; Home/End select 0.5/5 and Clear unsets. No rating slider remains. Main chips use 25–27px heights to achieve density; half-star targets are narrower and physical-device touch review is still needed. Expanded diagnostics, errors or long metadata may scroll naturally.
 
 See [screen reconciliation and height budget](docs/design-reconciliation.md). Browser artifacts include full-page screenshots and measured viewport/content heights under ignored `test-results/`; these tests use Chrome, not physical iPhone Safari.
+
+R1.2: open **Album info** from the compact album preview for status, Collections, objects, art and formats (all album saves remain unavailable). Main secondary links are More song tags, Metadata and Playlists. Genre/date editors stay accessible from their main-page summaries; Metadata focuses on progress, lyric review and to-do.

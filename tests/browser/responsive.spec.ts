@@ -22,7 +22,7 @@ for(const [width,height] of [[402,874],[402,714],[390,844],[430,932],[768,1024],
   await page.screenshot({path:`test-results/more-${width}x${height}.png`,fullPage:false});
   await page.getByRole('button',{name:'Close editor'}).click();const restored=await page.evaluate(()=>scrollY);expect(restored).toBe(previousScroll);
   await page.getByRole('button',{name:/RAMONA PARK/}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.screenshot({path:`test-results/album-${width}x${height}.png`,fullPage:false});
-  await page.locator('.sheet-content').evaluate(e=>{e.scrollTop=e.scrollHeight;});await expect(page.getByRole('checkbox',{name:'Take Flight',exact:true})).toBeVisible();
+  await page.locator('.sheet-content').evaluate(e=>{e.scrollTop=e.scrollHeight;});await expect(page.getByText('Cassette',{exact:true})).toBeVisible();
   expect(await page.getByRole('dialog').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
   await page.screenshot({path:`test-results/album-bottom-${width}x${height}.png`,fullPage:false});await page.keyboard.press('Escape');
   expect(external).toEqual([]);
@@ -43,7 +43,7 @@ test('save truthfulness, target isolation, preview drafts and keyboard modal beh
 });
 test('secondary metadata previews and unavailable album states are distinct',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByRole('radiogroup',{name:'Rating'})).toBeVisible();
- for(const [label,filename] of [['Metadata','metadata'],['Hip-Hop/Rap · R&B/Soul','genres'],['First heard · Apr 8, 2022','date'],['Album status','status'],['Playlists','playlists']]){
+ for(const [label,filename] of [['Metadata','metadata'],['Hip-Hop/Rap · R&B/Soul','genres'],['First heard · Apr 8, 2022','date'],['Playlists','playlists']]){
   await page.getByRole('button',{name:label,exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();
   expect(await page.getByRole('dialog').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
   await page.screenshot({path:`test-results/secondary-${filename}-390.png`});await page.keyboard.press('Escape');
@@ -78,4 +78,25 @@ test('reduced browser height also reserves a home-indicator safe area',async({pa
  const budget=await page.evaluate(()=>({width:innerWidth,viewport:innerHeight,content:document.querySelector('main')!.getBoundingClientRect().height,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),safeBottom:34}));
  writeFileSync('test-results/budget-reduced-safe-area.json',JSON.stringify(budget,null,2));expect(budget.overflow).toBe(0);await page.screenshot({path:'test-results/main-402x714-safe-area.png',fullPage:true});
  for(const control of await page.locator('main .main-controls input,main .main-controls button,main .secondary button').all())await expect(control).toBeInViewport();
+});
+test('Album info order, fixed modal target, no writes, and Metadata simplification',async({page})=>{
+ await page.setViewportSize({width:402,height:874});const external:string[]=[];page.on('request',r=>{if(!r.url().startsWith('http://127.0.0.1:5173'))external.push(r.url());});
+ await page.goto('/');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
+ await expect(page.getByRole('navigation').getByRole('button')).toHaveText(['More song tags ›','Metadata ›','Playlists ›']);
+ const preview=page.getByRole('button',{name:/Open Album info/});await preview.click();const sheet=page.getByRole('dialog',{name:'Album info'});
+ expect(await sheet.locator('h3,legend').allTextContents()).toEqual(['Album status','Collections · Read only','Album objects','Art & wallpaper','Music formats']);
+ await expect(sheet.getByRole('radio',{name:/^Full/})).not.toBeChecked();await expect(sheet.getByRole('button',{name:/Set album status/})).toBeDisabled();
+ await expect(sheet.getByRole('checkbox',{name:'Suzy'})).toBeDisabled();
+ const choices=sheet.locator('.album-status-segments label');await expect(choices).toHaveText(['Full','Incomplete','Trimmed']);
+ expect(new Set(await choices.evaluateAll(els=>els.map(e=>e.getBoundingClientRect().top))).size).toBe(1);
+ await expect(sheet.getByText('Applies to all matching album tracks. Full affects smart-playlist eligibility.',{exact:true})).toBeVisible();
+ await expect(sheet.getByRole('checkbox',{name:'Suzy'})).toBeInViewport();await page.screenshot({path:'test-results/album-info-402x874.png'});
+ await page.locator('.sheet-content').evaluate(e=>{e.scrollTop=e.scrollHeight;});await expect(sheet.getByText('Cassette',{exact:true})).toBeInViewport();
+ await page.screenshot({path:'test-results/album-info-bottom-402x874.png'});await page.locator('.sheet-content').evaluate(e=>{e.scrollTop=0;});
+ await page.setViewportSize({width:390,height:844});expect(new Set(await choices.evaluateAll(els=>els.map(e=>e.getBoundingClientRect().top))).size).toBe(1);await expect(sheet.getByRole('checkbox',{name:'Suzy'})).toBeInViewport();
+ await page.screenshot({path:'test-results/album-info-top-390x844.png'});await page.keyboard.press('Escape');await expect(preview).toBeFocused();expect(await page.evaluate(()=>scrollY)).toBe(0);
+ await page.setViewportSize({width:1440,height:900});await preview.click();await page.screenshot({path:'test-results/album-info-1440x900.png'});await page.keyboard.press('Escape');
+ await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Metadata',exact:true}).click();
+ await expect(page.getByRole('dialog').locator('.summaries')).toHaveCount(0);await expect(page.getByRole('dialog').getByRole('radio',{name:'Legacy unpro · preserved'})).toBeChecked();
+ await page.screenshot({path:'test-results/metadata-r12-390x844.png'});expect(external).toEqual([]);
 });

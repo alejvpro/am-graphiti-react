@@ -16,3 +16,8 @@
 - Maintain one-screen loaded-fixture tests at 402×874 and 402×714, plus 390×844 and 430×932. Emulate safe-area allowances explicitly; do not claim physical Safari validation.
 - Rating uses src/Rating.tsx: five stars, ten half-star radios, roving keyboard focus, arrow/Home/End selection. Keep numeric display, Clear and independent Favorite; no range slider.
 - Keep sample diagnostics in the compact disclosure. Errors/uncertainty must remain visible even when their messages require scrolling. Compact targets are an explicit density tradeoff, not accessibility certification.
+
+## R1.2 navigation override
+
+- R1.2 supersedes earlier reference organization: the album preview alone opens Album info, ordered Album status, Collections, Album objects, Art & wallpaper, Music formats. Never gate sections on Full or conflate all-track Comments status with first-track Grouping tags.
+- Main secondary navigation: More song tags, Metadata, Playlists. Metadata contains progress, lyric review and to-do; Genres/First heard retain their main-page entry points and standalone editors.
