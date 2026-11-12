@@ -18,7 +18,7 @@ main{max-width:620px;margin:auto;padding:0 max(10px,env(safe-area-inset-right)) 
 .main-controls{display:flex;flex-direction:column}.main-controls>div{min-width:0}.main-controls fieldset,.rating-section{margin:0;padding:3px 0;border:0;border-bottom:1px solid #e7e9ee;min-width:0}
 fieldset{min-width:0;margin:0;padding:9px 0;border:0;border-bottom:1px solid #e4e7ed}legend{float:left;width:100%;font-size:12px;line-height:14px;font-weight:600;margin:0 0 2px;padding:0}legend+.choices,legend+.segments{clear:both}
 .rating-section{position:relative}.rating-section h2{font-size:12px;line-height:14px;font-weight:600}.rating-section h2 small{display:inline-block;color:#101e44;font-size:18px;position:absolute;left:0;top:20px;width:50px;font-variant-numeric:tabular-nums}.rating-line{display:flex;align-items:center;gap:7px;padding-left:52px;height:30px}.rating-line>button{font-size:25px;width:32px;height:29px;min-height:29px;padding:0;line-height:26px}.heart{color:#e93c50}.heart[aria-pressed=true]{background:white;color:#ed354b;border-color:var(--border)}
-.stars{display:flex;align-items:center;gap:0;margin-right:auto;height:30px;touch-action:manipulation}.star{display:inline-flex;position:relative;width:33px;height:30px;font-size:32px;line-height:29px}.star-shape{width:32px;height:30px;pointer-events:none}.star-empty{fill:white;stroke:#8794ad;stroke-width:1.5;stroke-linejoin:round}.star-gold{fill:#ffb329;stroke:#ffb329;stroke-width:1.5;stroke-linejoin:round}.star>button{position:absolute;top:0;bottom:0;width:50%;border:0;border-radius:0;padding:0;min-height:30px;background:transparent}.star>button:first-of-type{left:0}.star>button:last-of-type{right:0}.star>button:focus-visible{outline-offset:0;z-index:1;background:#0876ff14}
+
 .segments{display:flex;gap:4px}.segments button{flex:1;min-width:0;padding:2px 3px;font-size:13px;line-height:19px;min-height:27px;background:#f7f8fa}.segments button[aria-pressed=true]{background:var(--blue)}
 .choices{display:flex;flex-wrap:wrap;gap:3px 5px}.check{display:flex;align-items:center;justify-content:center;gap:5px;min-height:27px;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:13px;line-height:19px;cursor:pointer;flex:0 0 auto;white-space:nowrap}.check input{width:14px;height:14px;margin:0;accent-color:var(--blue);flex-shrink:0}.check:has(input:checked){border-color:var(--blue);background:var(--blue);color:white}.check:has(input:disabled){cursor:not-allowed;background:#fafbfc;color:#5f6c83}.check:has(input:disabled:checked){background:#eaf3ff;border-color:#a9c7ef}.main-controls .tag-group:not([data-group=Themes]) .check{flex:1 0 auto}.words .choices{gap:3px}.words .check{padding:3px 4px;gap:3px}.words .check input{width:12px;height:12px}.main-controls [data-group=Themes] .check{padding:3px 6px}
 .secondary{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px}.secondary button{display:flex;justify-content:center;align-items:center;gap:8px;font-weight:650;font-size:13px;min-height:27px;padding:2px 5px}.secondary span{font-size:21px;line-height:20px}
@@ -84,3 +84,13 @@ dialog{border:0;border-radius:16px 16px 0 0;width:min(540px,100%);max-width:100%
 .lookup-progress{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;margin:6px 0;font-size:12px}
 .lookup-progress p{flex-basis:100%;color:#76521a}
 .lookup-progress small{font-size:11px;line-height:1.4}
+
+/* R2.4: separate, labeled rating targets; Favorite occupies the final cell. */
+.rating-section h2{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.rating-section h2 small{position:static;width:auto;font-size:15px}
+.rating-line{position:relative;padding-left:0;height:auto;max-width:none;display:block}
+.rating-positions{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;touch-action:manipulation}
+.rating-positions button,.rating-line>.heart{height:44px;min-height:44px;padding:0;font-size:14px;line-height:20px;font-weight:600}
+.rating-positions button[aria-checked=true]{background:var(--blue);border-color:var(--blue);color:white;box-shadow:inset 0 0 0 2px white; font-weight:800}
+.rating-line>.heart{position:absolute;bottom:0;right:0;width:calc((100% - 15px)/6);font-size:25px}
+@media(min-width:768px){.rating-line{display:flex;gap:4px;max-width:900px}.rating-positions{flex:1;grid-template-columns:repeat(11,minmax(0,1fr))}.rating-line>.heart{position:static;flex:0 0 44px;width:44px}}

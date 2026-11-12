@@ -11,7 +11,7 @@ it('renders primary controls with exact independent tokens and half-star rating'
   await userEvent.click(screen.getByRole('checkbox',{name:label,exact:true}));await waitFor(()=>expect(service.calls.some(r=>r.query.tag===token)).toBe(true));
  }
  await userEvent.click(screen.getByRole('radio',{name:'3.5 stars',exact:true}));expect(screen.getByText('3.5 / 5')).toBeInTheDocument();
- await userEvent.click(screen.getByRole('button',{name:'Clear rating'}));expect(screen.getByText('0 / 5')).toBeInTheDocument();expect(screen.getByRole('button',{name:'Favorite'})).toHaveAttribute('aria-pressed','true');
+ await userEvent.click(screen.getByRole('radio',{name:'0 stars · Unset',exact:true}));expect(screen.getByText('0 / 5')).toBeInTheDocument();expect(screen.getByRole('button',{name:'Favorite'})).toHaveAttribute('aria-pressed','true');
  const mood=screen.getByRole('group',{name:'Mood'}),energy=screen.getByRole('group',{name:'Energy'});
  await userEvent.click(within(mood).getByRole('button',{name:'Unset'}));expect(within(mood).getByRole('button',{name:'Neutral'})).toHaveAttribute('aria-pressed','false');
  expect(within(energy).getByRole('button',{name:'Unset'})).toBeInTheDocument();

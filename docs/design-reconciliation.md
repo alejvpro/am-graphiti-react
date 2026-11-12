@@ -70,3 +70,20 @@ Main secondary navigation is now More song tags, Metadata, Playlists. Metadata o
 ### R1.2.1 compact Album status
 
 Approved refinement: replace stacked status cards/descriptions with one horizontal Full / Incomplete / Trimmed radio segment row, retaining native checked indicators plus selected styling. Existing sample status text (unset, mixed, unavailable/unknown) remains authoritative; no choice is inferred or saved. Choices and Set remain disabled. One short note covers album-wide scope and Full’s smart-playlist implications. Collections follows the compact editor immediately; its sample-data state is shown within that section. First-track Grouping/read-only information remains at the bottom. Other sections, main controls, API and target handling are unchanged.
+
+
+## R2.4 — precise rating selector
+
+Physical-iPhone feedback supersedes the five-star split-hit-area design. Eleven outlined, individually labeled radios are ordered 0, ½, 1, 1½, 2, 2½, 3, 3½, 4, 4½, 5; the independent Favorite heart follows. Zero means unset and replaces the right-side X. Phones use six columns across two rows; desktop uses one row. Numeric display, keyboard roving focus/arrows/Home/End, selected-state dimensions and screen-reader semantics remain. Each position sends its index × 10 (0–100); live display waits for verified backend state. No state/API/routing or unrelated control-layout changes.
+
+Measured Chrome emulation: targets are 61.16–61.17 × 44px at 402px width and 59.16–59.17 × 44px at 390px, with 3px gaps. The 44px height intentionally takes priority over the older zero-overflow reduced-height goal.
+
+| Viewport | Main content height | Document height | Vertical overflow |
+|---|---:|---:|---:|
+| 402×714 | 746.39px | 746px | 32px |
+| 402×874 | 827.39px | 874px | 0px |
+| 390×844 | 827.39px | 844px | 0px |
+
+The existing conservative safe-area simulations report 43px overflow at 402×874 (62px top/34px bottom) and 63px at 402×714 (34px bottom). All controls remain reachable by natural scrolling; nothing is clipped, hidden or scaled. Inspected full-page screenshots at all three requested phone dimensions. Physical-iPhone touch acceptance remains pending; emulated touch tests exercise all eleven positions. Unsupported writes, Favorite independence and R2.3 protections are unchanged. Local validation uses a sample production build; personal .env.local is unchanged and no live requests are made.
+
+R2.4 validation: 81 component/API tests, 23 browser tests, the production sample validation build and `git diff --check` pass. Browser tests cover single-tap selection of every position, exact callback values, keyboard behavior, independent Favorite, removed X/slider, unchanged save/routing protections and measured natural scrolling. Initial zero-overflow assertions were replaced with the measured R2.4 height budgets; all final checks pass.

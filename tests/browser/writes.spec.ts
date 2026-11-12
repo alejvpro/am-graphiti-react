@@ -21,13 +21,13 @@ test('write-enabled mobile editor, automatic routing, truthful outcomes and reco
  });
  await page.goto('http://127.0.0.1:5175/react-preview/');expect(requests).toHaveLength(0);await page.getByRole('button',{name:'Refresh playback and library'}).click();await expect(page.getByRole('heading',{level:1})).toHaveText(songA.name);expect(requests[0].origin).toBe('http://mac-public.example.invalid:7305');
  await page.getByRole('radio',{name:'2.5 stars',exact:true}).click();await expect(page.locator('.identity [role=status]')).toHaveText('✓ Save verified');await expect(page.getByText('2.5 / 5',{exact:true})).toBeVisible();
- await page.getByRole('button',{name:'Clear rating'}).click();await expect(page.getByText('0 / 5',{exact:true})).toBeVisible();
+ await page.getByRole('radio',{name:'0 stars · Unset',exact:true}).click();await expect(page.getByText('0 / 5',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Favorite'}).click();await expect(page.getByRole('button',{name:'Favorite'})).toHaveAttribute('aria-pressed','false');
  await page.getByRole('group',{name:'Energy',exact:true}).getByRole('button',{name:'Unset',exact:true}).click();await expect(page.getByRole('group',{name:'Energy',exact:true}).getByRole('button',{name:'Unset',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.getByRole('group',{name:'Mood',exact:true}).getByRole('button',{name:'Positive',exact:true}).click();await expect(page.getByRole('group',{name:'Mood',exact:true}).getByRole('button',{name:'Positive',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.getByRole('checkbox',{name:'Suzible',exact:true}).click();await expect(page.getByRole('checkbox',{name:'Suzible',exact:true})).toBeChecked();
  await page.getByRole('button',{name:'More song tags',exact:false}).click();await page.getByRole('checkbox',{name:'Acoustic',exact:true}).click();await expect(page.getByRole('dialog').getByRole('status')).toHaveText('✓ Save verified');await page.keyboard.press('Escape');
- expect(await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight)).toBe(0);await page.screenshot({path:'test-results/write-enabled-402x714.png',fullPage:true});
+ expect(await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight)).toBe(32);await page.screenshot({path:'test-results/write-enabled-402x714.png',fullPage:true});
  result='failed';await page.getByRole('checkbox',{name:'Lari',exact:true}).click();await expect(page.locator('.identity [role=status]')).toHaveText(/Save failed/);await expect(page.getByRole('checkbox',{name:'Lari',exact:true})).not.toBeChecked();
  result='uncertain';await page.getByRole('checkbox',{name:'Lari',exact:true}).click();await expect(page.locator('.identity [role=status]')).toHaveText(/Outcome uncertain/);await expect(page.getByRole('button',{name:'Favorite'})).toBeDisabled();await page.screenshot({path:'test-results/write-uncertain-402x714.png',fullPage:true});
  result='verified';await page.getByRole('button',{name:'Refresh library metadata to reconcile'}).click();await expect(page.getByRole('button',{name:'Favorite'})).toBeEnabled();

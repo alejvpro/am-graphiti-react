@@ -13,8 +13,11 @@ for(const [width,height] of [[402,874],[402,714],[390,844],[430,932],[768,1024],
    const regions=Object.fromEntries(ordered.map((e,i)=>[names[i],Math.round(((ordered[i+1]?.getBoundingClientRect().top??e.getBoundingClientRect().bottom)-e.getBoundingClientRect().top)*100)/100]));
    return {width:innerWidth,viewport:innerHeight,visualViewport:visualViewport?.height,content:Math.round(document.querySelector('main')!.getBoundingClientRect().height*100)/100,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),regions,mainControls:document.querySelectorAll('main .main-controls input,main .main-controls button').length};
   });writeFileSync(`test-results/budget-${width}x${height}.json`,JSON.stringify(budget,null,2));console.log(budget);
-  expect(budget.overflow).toBe(0);
-  for(const control of await page.locator('main .main-controls input,main .main-controls button,main .secondary button').all())await expect(control).toBeInViewport();
+  const targets=await page.locator('.rating-positions button,.rating-line>.heart').evaluateAll(els=>els.map(e=>({label:e.textContent,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height,top:e.getBoundingClientRect().top})));
+  writeFileSync(`test-results/rating-targets-${width}x${height}.json`,JSON.stringify(targets,null,2));expect(targets.map(t=>t.label)).toEqual(['0','½','1','1½','2','2½','3','3½','4','4½','5','♥']);for(const target of targets){expect(target.width).toBeGreaterThanOrEqual(44);expect(target.height).toBeGreaterThanOrEqual(44);}
+  expect(budget.overflow).toBe(width===402&&height===714?32:0);
+  for(const control of await page.locator('main .main-controls input,main .main-controls button,main .secondary button').all()){if(budget.overflow)await control.scrollIntoViewIfNeeded();await expect(control).toBeInViewport();}
+  await page.evaluate(()=>scrollTo(0,0));
   await page.screenshot({path:`test-results/main-${width}x${height}.png`,fullPage:true});
   const previousScroll=await page.evaluate(()=>scrollY);
   await page.getByRole('button',{name:'More song tags'}).click();await expect(page.getByRole('dialog')).toBeVisible();
@@ -53,15 +56,15 @@ test('secondary metadata previews and unavailable album states are distinct',asy
   await page.getByLabel('Scenario',{exact:true}).selectOption(scenario);await expect(page.getByRole('button',{name:/RAMONA PARK/})).toContainText(text);
  }
 });
-test('half-stars accept pointer, touch and keyboard without moving controls',async({browser})=>{
+test('discrete ratings accept pointer, touch and keyboard without moving controls',async({browser})=>{
  const context=await browser.newContext({viewport:{width:402,height:714},hasTouch:true,isMobile:true,deviceScaleFactor:3});const page=await context.newPage();
- await page.goto('./');const half=page.getByRole('radio',{name:'2.5 stars',exact:true});await half.waitFor();
- await half.tap();await page.locator('.stars').screenshot({path:'test-results/half-stars-touch.png'});await expect(half).toHaveAttribute('aria-checked','true');await expect(page.getByText('2.5 / 5',{exact:true})).toBeVisible();
+ await page.goto('./');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();for(let i=0;i<=10;i++){const choice=page.getByRole('radio',{name:i===0?'0 stars · Unset':`${i/2} stars`,exact:true});await choice.tap();await expect(choice).toHaveAttribute('aria-checked','true');await expect(page.getByText(`${i/2} / 5`,{exact:true})).toBeVisible();}await expect(page.getByRole('button',{name:'Clear rating'})).toHaveCount(0);const half=page.getByRole('radio',{name:'2.5 stars',exact:true});await half.waitFor();
+ await half.tap();await page.locator('.rating-positions').screenshot({path:'test-results/half-stars-touch.png'});await expect(half).toHaveAttribute('aria-checked','true');await expect(page.getByText('2.5 / 5',{exact:true})).toBeVisible();
  await half.focus();await page.keyboard.press('ArrowRight');await expect(page.getByRole('radio',{name:'3 stars',exact:true})).toBeFocused();await expect(page.getByText('3 / 5',{exact:true})).toBeVisible();
- await page.keyboard.press('Home');await expect(page.getByText('0.5 / 5',{exact:true})).toBeVisible();await page.keyboard.press('End');await expect(page.getByText('5 / 5',{exact:true})).toBeVisible();
+ await page.keyboard.press('Home');await expect(page.getByText('0 / 5',{exact:true})).toBeVisible();await page.keyboard.press('End');await expect(page.getByText('5 / 5',{exact:true})).toBeVisible();
  const checkbox=page.getByRole('checkbox',{name:'Suzible',exact:true});const before=await checkbox.locator('..').boundingBox();await checkbox.check();const after=await checkbox.locator('..').boundingBox();expect(after).toEqual(before);
  const people=await page.locator('[data-group=People] .check').evaluateAll(els=>els.map(e=>e.getBoundingClientRect().top));expect(new Set(people).size).toBe(1);
- await page.getByRole('button',{name:'Clear rating'}).tap();await expect(page.getByText('0 / 5',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Favorite'})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('radio',{name:'0 stars · Unset',exact:true}).tap();await expect(page.getByText('0 / 5',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Favorite'})).toHaveAttribute('aria-pressed','true');
  await expect(page.getByRole('slider')).toHaveCount(0);await context.close();
 });
 test('standalone safe-area allowance and scroll restoration when diagnostics expand',async({page})=>{
@@ -69,15 +72,15 @@ test('standalone safe-area allowance and scroll restoration when diagnostics exp
  // Explicit conservative simulation: Chrome does not emulate iOS safe-area environment values.
  await page.addStyleTag({content:'main{padding-top:62px;padding-bottom:34px}'});
  const safe=await page.evaluate(()=>({width:innerWidth,viewport:innerHeight,content:document.querySelector('main')!.getBoundingClientRect().height,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),safeTop:62,safeBottom:34}));
- writeFileSync('test-results/budget-safe-area.json',JSON.stringify(safe,null,2));expect(safe.overflow).toBe(0);await page.screenshot({path:'test-results/main-402x874-safe-area.png',fullPage:true});
+ writeFileSync('test-results/budget-safe-area.json',JSON.stringify(safe,null,2));expect(safe.overflow).toBe(43);await page.screenshot({path:'test-results/main-402x874-safe-area.png',fullPage:true});
  await page.getByText('SAMPLE · Scenarios').click();await page.getByRole('button',{name:'More song tags'}).scrollIntoViewIfNeeded();const y=await page.evaluate(()=>scrollY);expect(y).toBeGreaterThan(0);await page.getByRole('button',{name:'More song tags'}).click();await page.keyboard.press('Escape');expect(await page.evaluate(()=>scrollY)).toBe(y);
 });
 test('reduced browser height also reserves a home-indicator safe area',async({page})=>{
  await page.setViewportSize({width:402,height:714});await page.goto('./');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
  await page.addStyleTag({content:'main{padding-bottom:34px}'});
  const budget=await page.evaluate(()=>({width:innerWidth,viewport:innerHeight,content:document.querySelector('main')!.getBoundingClientRect().height,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),safeBottom:34}));
- writeFileSync('test-results/budget-reduced-safe-area.json',JSON.stringify(budget,null,2));expect(budget.overflow).toBe(0);await page.screenshot({path:'test-results/main-402x714-safe-area.png',fullPage:true});
- for(const control of await page.locator('main .main-controls input,main .main-controls button,main .secondary button').all())await expect(control).toBeInViewport();
+ writeFileSync('test-results/budget-reduced-safe-area.json',JSON.stringify(budget,null,2));expect(budget.overflow).toBe(63);await page.screenshot({path:'test-results/main-402x714-safe-area.png',fullPage:true});
+ for(const control of await page.locator('main .main-controls input,main .main-controls button,main .secondary button').all()){await control.scrollIntoViewIfNeeded();await expect(control).toBeInViewport();}
 });
 test('Album info order, fixed modal target, no writes, and Metadata simplification',async({page})=>{
  await page.setViewportSize({width:402,height:874});const external:string[]=[];page.on('request',r=>{if(!r.url().startsWith('http://127.0.0.1:5173'))external.push(r.url());});

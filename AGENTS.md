@@ -13,8 +13,8 @@
 ## R1.1 visual guidance
 
 - Mobile 1 remains the visual authority; Mobile 0b is only the physical-iPhone density benchmark. Preserve every main group in order; no hidden groups, zoom/scaling, clipping, or alternate quick/full mode.
-- Maintain one-screen loaded-fixture tests at 402×874 and 402×714, plus 390×844 and 430×932. Emulate safe-area allowances explicitly; do not claim physical Safari validation.
-- Rating uses src/Rating.tsx: five stars, ten half-star radios, roving keyboard focus, arrow/Home/End selection. Keep numeric display, Clear and independent Favorite; no range slider.
+- Maintain measured loaded-fixture tests at 402×874 and 402×714, plus 390×844 and 430×932. R2.4 prioritizes precise rating targets: the reduced 402×714 viewport now has 32px overflow (63px with the explicit 34px bottom allowance); preserve natural scrolling and access to every control. Emulate safe-area allowances explicitly; do not claim physical Safari validation.
+- R2.4 rating overrides the earlier star rendering: src/Rating.tsx exposes eleven labeled radios from 0/unset through 5 in half steps, roving focus and arrow/Home/End selection. Keep numeric display and independent Favorite last; no X clear button, range slider or popup. Phone targets are two rows of six including Favorite, at least 44px tall.
 - Keep sample diagnostics in the compact disclosure. Errors/uncertainty must remain visible even when their messages require scrolling. Compact targets are an explicit density tradeoff, not accessibility certification.
 
 ## R1.2 navigation override
