@@ -14,8 +14,8 @@ for(const [width,height] of [[402,874],[402,714],[390,844],[430,932],[768,1024],
    return {width:innerWidth,viewport:innerHeight,visualViewport:visualViewport?.height,content:Math.round(document.querySelector('main')!.getBoundingClientRect().height*100)/100,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),regions,mainControls:document.querySelectorAll('main .main-controls input,main .main-controls button').length};
   });writeFileSync(`test-results/budget-${width}x${height}.json`,JSON.stringify(budget,null,2));console.log(budget);
   const targets=await page.locator('.rating-positions button,.rating-line>.heart').evaluateAll(els=>els.map(e=>({label:e.textContent,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height,top:e.getBoundingClientRect().top})));
-  writeFileSync(`test-results/rating-targets-${width}x${height}.json`,JSON.stringify(targets,null,2));expect(targets.map(t=>t.label)).toEqual(['0','½','1','1½','2','2½','3','3½','4','4½','5','♥']);for(const target of targets){expect(target.width).toBeGreaterThanOrEqual(44);expect(target.height).toBeGreaterThanOrEqual(44);}
-  expect(budget.overflow).toBe(width===402&&height===714?32:0);
+  writeFileSync(`test-results/rating-targets-${width}x${height}.json`,JSON.stringify(targets,null,2));expect(targets.map(t=>t.label)).toEqual(['0','½','1','½','2','½','3','½','4','½','5','♥']);expect(new Set(targets.map(t=>t.top))).toHaveProperty('size',1);for(const target of targets){expect(target.width).toBeGreaterThanOrEqual(28.9);expect(target.height).toBeGreaterThanOrEqual(44);}
+  expect(budget.overflow).toBe(0);
   for(const control of await page.locator('main .main-controls input,main .main-controls button,main .secondary button').all()){if(budget.overflow)await control.scrollIntoViewIfNeeded();await expect(control).toBeInViewport();}
   await page.evaluate(()=>scrollTo(0,0));
   await page.screenshot({path:`test-results/main-${width}x${height}.png`,fullPage:true});
@@ -72,14 +72,14 @@ test('standalone safe-area allowance and scroll restoration when diagnostics exp
  // Explicit conservative simulation: Chrome does not emulate iOS safe-area environment values.
  await page.addStyleTag({content:'main{padding-top:62px;padding-bottom:34px}'});
  const safe=await page.evaluate(()=>({width:innerWidth,viewport:innerHeight,content:document.querySelector('main')!.getBoundingClientRect().height,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),safeTop:62,safeBottom:34}));
- writeFileSync('test-results/budget-safe-area.json',JSON.stringify(safe,null,2));expect(safe.overflow).toBe(43);await page.screenshot({path:'test-results/main-402x874-safe-area.png',fullPage:true});
+ writeFileSync('test-results/budget-safe-area.json',JSON.stringify(safe,null,2));expect(safe.overflow).toBe(0);await page.screenshot({path:'test-results/main-402x874-safe-area.png',fullPage:true});
  await page.getByText('SAMPLE · Scenarios').click();await page.getByRole('button',{name:'More song tags'}).scrollIntoViewIfNeeded();const y=await page.evaluate(()=>scrollY);expect(y).toBeGreaterThan(0);await page.getByRole('button',{name:'More song tags'}).click();await page.keyboard.press('Escape');expect(await page.evaluate(()=>scrollY)).toBe(y);
 });
 test('reduced browser height also reserves a home-indicator safe area',async({page})=>{
  await page.setViewportSize({width:402,height:714});await page.goto('./');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
  await page.addStyleTag({content:'main{padding-bottom:34px}'});
  const budget=await page.evaluate(()=>({width:innerWidth,viewport:innerHeight,content:document.querySelector('main')!.getBoundingClientRect().height,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),safeBottom:34}));
- writeFileSync('test-results/budget-reduced-safe-area.json',JSON.stringify(budget,null,2));expect(budget.overflow).toBe(63);await page.screenshot({path:'test-results/main-402x714-safe-area.png',fullPage:true});
+ writeFileSync('test-results/budget-reduced-safe-area.json',JSON.stringify(budget,null,2));expect(budget.overflow).toBe(16);await page.screenshot({path:'test-results/main-402x714-safe-area.png',fullPage:true});
  for(const control of await page.locator('main .main-controls input,main .main-controls button,main .secondary button').all()){await control.scrollIntoViewIfNeeded();await expect(control).toBeInViewport();}
 });
 test('Album info order, fixed modal target, no writes, and Metadata simplification',async({page})=>{

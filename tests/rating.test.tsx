@@ -3,7 +3,7 @@ import {render,screen,fireEvent} from '@testing-library/react';
 import {Rating} from '../src/Rating';
 it('exposes eleven labeled positions with exact backend values and no optimistic selection',()=>{
  const change=vi.fn();const {rerender}=render(<Rating value={90} disabled={false} onChange={change}/>);
- const choices=screen.getAllByRole('radio');expect(choices.map(e=>e.textContent)).toEqual(['0','½','1','1½','2','2½','3','3½','4','4½','5']);
+ const choices=screen.getAllByRole('radio');expect(choices.map(e=>e.textContent)).toEqual(['0','½','1','½','2','½','3','½','4','½','5']);
  choices.forEach((button,i)=>{fireEvent.click(button);expect(change).toHaveBeenLastCalledWith(i*10);expect(screen.getByRole('radio',{name:'4.5 stars'})).toHaveAttribute('aria-checked','true');});
  rerender(<Rating value={0} disabled={false} onChange={change}/>);expect(choices[0]).toHaveAttribute('aria-checked','true');expect(choices[0]).toHaveAttribute('tabindex','0');
  rerender(<Rating value={0} disabled onChange={change}/>);change.mockClear();choices.forEach(button=>{expect(button).toBeDisabled();fireEvent.click(button);});expect(change).not.toHaveBeenCalled();

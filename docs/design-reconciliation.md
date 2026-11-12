@@ -87,3 +87,20 @@ Measured Chrome emulation: targets are 61.16–61.17 × 44px at 402px width and 
 The existing conservative safe-area simulations report 43px overflow at 402×874 (62px top/34px bottom) and 63px at 402×714 (34px bottom). All controls remain reachable by natural scrolling; nothing is clipped, hidden or scaled. Inspected full-page screenshots at all three requested phone dimensions. Physical-iPhone touch acceptance remains pending; emulated touch tests exercise all eleven positions. Unsupported writes, Favorite independence and R2.3 protections are unchanged. Local validation uses a sample production build; personal .env.local is unchanged and no live requests are made.
 
 R2.4 validation: 81 component/API tests, 23 browser tests, the production sample validation build and `git diff --check` pass. Browser tests cover single-tap selection of every position, exact callback values, keyboard behavior, independent Favorite, removed X/slider, unchanged save/routing protections and measured natural scrolling. Initial zero-overflow assertions were replaced with the measured R2.4 height budgets; all final checks pass.
+
+
+## R2.4.1 — single-row rating experiment
+
+Explicit user refinement supersedes R2.4's two-row layout. Visible order is 0, ½, 1, ½, 2, ½, 3, ½, 4, ½, 5, Favorite. Each repeated ½ has its full accessible value (0.5/1.5/2.5/3.5/4.5 stars). Backend mapping, controlled selection, numeric display, keyboard handling, Favorite and save/routing safeguards are unchanged. Only rating labels/layout, affected tests and guidance changed.
+
+Phone controls use one row with 2px gaps and 44px height. Actual widths are approximately 30px at 402px and 29px at 390px (heart rounds to 28.984px). Targets are narrower than R2.4's 59–61px; this is the user's requested usability experiment, not a claim of 44×44px targets or physical touch validation. Full labels remain available to screen readers.
+
+| Viewport | Main content height | R2.4 overflow | R2.4.1 overflow |
+|---|---:|---:|---:|
+| 402×714 | 699.39px | 32px | 0px |
+| 402×874 | 780.39px | 0px | 0px |
+| 390×844 | 780.39px | 0px | 0px |
+
+The rating region is 47px shorter; surrounding controls are unchanged. Conservative safe-area simulations improve from 43px to 0px at 402×874 and 63px to 16px at 402×714. No wrapping, horizontal scrolling, clipping or whole-app scaling is used. Personal .env.local is unchanged; dist is a sample validation build, not a new live-upload package.
+
+R2.4.1 validation: 81 component/API tests, 23 browser tests, production sample validation build and `git diff --check` passed. Inspected screenshots at 402×874, 402×714 and 390×844: all twelve targets share one row with readable labels, distinct borders and no horizontal overflow. Existing emulated-touch coverage exercises all eleven accessible rating values and independent Favorite. Physical-iPhone acceptance of the narrower targets remains pending.

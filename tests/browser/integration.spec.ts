@@ -14,7 +14,7 @@ for(const [width,height] of [[402,714],[402,874],[390,844],[1440,900]]){
   await expect(page.getByText('READ ONLY · Connection')).toBeVisible();await page.getByRole('button',{name:'Refresh playback and library'}).click();
   await expect(page.getByRole('heading',{level:1})).toHaveText(songA.name);await expect(page.getByRole('button',{name:'Favorite'})).toBeDisabled();
   for(const el of await page.locator('main .main-controls input,main .main-controls button').all())await expect(el).toBeDisabled();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight)).toBe(width===402&&height===714?32:0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight)).toBe(0);
   await page.screenshot({path:`test-results/read-only-${width}x${height}.png`,fullPage:true});
   await page.getByRole('button',{name:'Refresh playback and library'}).click();await expect.poll(()=>libraryReads).toBe(2);await expect(page.locator('.identity [role=status]')).toHaveText('Read only · Library loaded');
   await page.getByRole('button',{name:'Pin editing target'}).click();playback=songB;await page.getByRole('button',{name:'Refresh playback and library'}).click();await expect(page.locator('.identity [role=status]')).toHaveText(/Pinned · Playback updated/);await expect(page.getByRole('heading',{level:1})).toHaveText(songA.name);expect(libraryReads).toBe(2);
