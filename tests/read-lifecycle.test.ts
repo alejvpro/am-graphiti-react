@@ -17,7 +17,7 @@ function setup(timeout=MAC_READ_TIMEOUT_MS){
 describe('Mac read lifecycle',()=>{
  it('centralizes the 60-second Mac policy and validates configurable overrides without changing Last.fm',()=>{
   expect(MAC_READ_TIMEOUT_MS).toBe(60000);expect(SLOW_LOOKUP_MS).toBe(3000);expect(LASTFM_READ_TIMEOUT_MS).toBe(8000);
-  const env={VITE_PLAYBACK_MODE:'read-only',VITE_LASTFM_USERNAME:config.username,VITE_LASTFM_API_KEY:config.apiKey,VITE_MAC_INTERNAL_ORIGIN:origins.internal};
+  const env={VITE_PLAYBACK_MODE:'read-only',VITE_LASTFM_USERNAME:config.username,VITE_LASTFM_API_KEY:config.apiKey,VITE_MAC_INTERNAL_ORIGIN:origins.internal,VITE_MAC_ROUTING:'internal'};
   expect(readIntegrationConfig(env)).toMatchObject({mode:'read-only',config:{macReadTimeoutMs:60000}});
   expect(readIntegrationConfig({...env,VITE_MAC_READ_TIMEOUT_MS:'45000'})).toMatchObject({mode:'read-only',config:{macReadTimeoutMs:45000}});
   for(const value of ['0','-1','NaN','Infinity','1.5','999999999999'])expect(readIntegrationConfig({...env,VITE_MAC_READ_TIMEOUT_MS:value}).mode).toBe('invalid');

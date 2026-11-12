@@ -9,8 +9,8 @@ export type SelectedIdentity = {libraryId:string;persistentID:string};
 export type Selection = { ambiguous: boolean; matchCount: number; selectedIdentity?:SelectedIdentity; identityChanged?:boolean; warning?: string; [key: string]: unknown };
 export type Change = { field: 'rating'|'loved'|'energy'|'mood'; value: number|boolean } | { field: 'tag'; token: string; value: boolean };
 export type Request = { route: '/song_info'|'/rate'|'/loved'|'/energy'|'/mood'|'/tag'; query: Record<string,string> };
-export type Transport = (request: Request,context?:{signal?:AbortSignal}) => Promise<unknown>;
-export type WriteResult = { outcome: 'verified'|'failed'|'uncertain'; message: string; song?: Song };
+export type Transport = ((request: Request,context?:{signal?:AbortSignal}) => Promise<unknown>) & {capture?:()=>Transport};
+export type WriteResult = { selection?:Selection; outcome: 'verified'|'failed'|'uncertain'; message: string; song?: Song };
 export const keyOf = (i: Identity) => JSON.stringify([i.name,i.artist,i.album]);
 export const tokensOf = (s: Song) => new Set(s.comment.split(/\s+/u).filter(Boolean));
 export function normalizeSong(raw: unknown): Song {
@@ -38,7 +38,7 @@ export function requestFor(target: Identity, change?: Change, refresh?: boolean)
 export function normalizeWrite(raw: unknown, target: Identity): WriteResult {
  const b = raw as Record<string,unknown> | null;
  if(b?.status===200 && b.outcome==='verified') {
-  try {const song=normalizeSong(b.match); if(keyOf(song)!==keyOf(target)) throw Error('Response target differs'); return {outcome:'verified',song,message:String(b.message)};} catch {return {outcome:'uncertain',message:'Readback target or metadata could not be verified'};}
+  try {const song=normalizeSong(b.match); if(keyOf(song)!==keyOf(target)) throw Error('Response target differs'); return {outcome:'verified',song,selection:b.selection as Selection|undefined,message:String(b.message)};} catch {return {outcome:'uncertain',message:'Readback target or metadata could not be verified'};}
  }
  return {outcome:b?.status===400&&b.outcome==='failed'?'failed':'uncertain', message:typeof b?.message==='string'?b.message:'Completion unknown; inspect target before another edit'};
 }
@@ -49,15 +49,20 @@ async function bounded(transport: Transport, request: Request, timeout: number):
 }
 export class LegacyClient {
  private tail = Promise.resolve();
+ private writeRevision=0;
+ captureTransport(){return this.transport.capture?.()??this.transport;}
  private selectedIdentities=new Map<string,SelectedIdentity>();
  constructor(private transport: Transport, private timeout=REQUEST_TIMEOUT_MS,private readTimeout=MAC_READ_TIMEOUT_MS) {}
  async read(target: Identity, refresh:boolean|undefined=undefined,options:{signal?:AbortSignal}={}): Promise<{song:Song;selection?:Selection}> {
   target={...target};
+  let queued:Promise<void>;do{queued=this.tail;await queued;}while(queued!==this.tail);
+  const revision=this.writeRevision;
   const request=requestFor(target,undefined,refresh);
   let raw:Record<string,unknown>;
   try{raw=await waitForRead(signal=>this.transport(request,{signal}),this.readTimeout,options.signal) as Record<string,unknown>;}
   catch(e){if(e instanceof ReadError)throw e;throw new ReadError('network','Mac API unavailable');}
   try{
+   if(revision!==this.writeRevision)throw new ReadError('failed','Metadata changed during lookup; refresh again');
    if(!raw||typeof raw!=='object'||Array.isArray(raw)||![200,400].includes(raw.status as number)||typeof raw.message!=='string'||!Array.isArray(raw.results)||!Array.isArray(raw.matches))throw Error('Invalid Mac API response envelope');
    if(raw.status===400){
     if(raw.match!==null||raw.matches.length!==0)throw Error('Invalid Mac API failure envelope');
@@ -78,10 +83,11 @@ export class LegacyClient {
   }catch(e){if(e instanceof ReadError)throw e;throw new ReadError('malformed',e instanceof Error?e.message:'Invalid Mac API response');}
  }
 
- write(target: Identity, change: Change): Promise<WriteResult> {
+ write(target: Identity, change: Change, transport=this.captureTransport()): Promise<WriteResult> {
   const captured={name:target.name,artist:target.artist,album:target.album};
   const request=requestFor(captured,change);
-  const result=this.tail.then(async()=>{try{return normalizeWrite(await bounded(this.transport,request,this.timeout),captured);}catch(e){return {outcome:'uncertain',message:e instanceof Error?e.message:'Completion unknown'} as WriteResult;}});
+  this.writeRevision++;
+  const result=this.tail.then(async()=>{try{return normalizeWrite(await bounded(transport,request,this.timeout),captured);}catch(e){return {outcome:'uncertain',message:e instanceof Error?e.message:'Completion unknown'} as WriteResult;}});
   this.tail=result.then(()=>{}); return result;
  }
 }

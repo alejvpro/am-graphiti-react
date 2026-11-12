@@ -67,7 +67,7 @@ describe('manual playback/metadata orchestration',()=>{
  it('ignores delayed A lookup after B becomes active',async()=>{
   const a=deferred<unknown>();const source=vi.fn().mockResolvedValueOnce(normalizePlayback(now())).mockResolvedValueOnce(normalizePlayback(now(songB)));
   const read=vi.fn().mockReturnValueOnce(a.promise).mockResolvedValueOnce(mac(songB));const loaded=vi.fn();const session=new PlaybackSession(source,new LegacyClient(read),loaded);
-  const first=session.refresh();await Promise.resolve();await Promise.resolve();await session.refresh();a.resolve(mac());await first;expect(session.snapshot().targetKey).toBe(keyOf(songB));expect(loaded).toHaveBeenCalledTimes(1);
+  const first=session.refresh();await vi.waitFor(()=>expect(read).toHaveBeenCalledTimes(1));await session.refresh();a.resolve(mac());await first;expect(session.snapshot().targetKey).toBe(keyOf(songB));expect(loaded).toHaveBeenCalledTimes(1);
  });
  it('ignores two Last.fm refreshes arriving in reverse order',async()=>{
   const a=deferred<ReturnType<typeof normalizePlayback>>();const source=vi.fn().mockReturnValueOnce(a.promise).mockResolvedValueOnce(normalizePlayback(now(songB)));
