@@ -59,5 +59,6 @@ describe('committed legacy contract boundary',()=>{
 it('controlled real transport is inert by default and can be tested with an injected executor',async()=>{
  const {createRealTransport}=await import('../src/api');const executor=vi.fn().mockResolvedValue({ok:true,json:async()=>verified()});
  await expect(createRealTransport('http://example.invalid',false,executor)(requestFor(a))).rejects.toThrow('disabled');expect(executor).not.toHaveBeenCalled();
- const result=await createRealTransport('http://example.invalid',true,executor)(requestFor(a,{field:'mood',value:3}));expect(result).toMatchObject({outcome:'verified'});expect(executor.mock.calls[0][0].searchParams.get('mood')).toBe('3');
+ await expect(createRealTransport('http://example.invalid',true,executor)(requestFor(a,{field:'mood',value:3}))).rejects.toThrow('blocks all mutations');expect(executor).not.toHaveBeenCalled();
+ await createRealTransport('http://example.invalid',true,executor)(requestFor(a));expect(executor).toHaveBeenCalledTimes(1);
 });

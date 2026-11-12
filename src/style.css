@@ -80,3 +80,7 @@ dialog{border:0;border-radius:16px 16px 0 0;width:min(540px,100%);max-width:100%
 .album-status-segments input{width:14px;height:14px;margin:0;accent-color:var(--blue)}
 .album-status-segments label:has(input:checked){background:var(--blue);color:white}
 .sheet-content fieldset>.drawer-identity{clear:both;font-size:11px;margin:0 0 6px}
+.actions{justify-content:flex-end}
+.lookup-progress{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;margin:6px 0;font-size:12px}
+.lookup-progress p{flex-basis:100%;color:#76521a}
+.lookup-progress small{font-size:11px;line-height:1.4}

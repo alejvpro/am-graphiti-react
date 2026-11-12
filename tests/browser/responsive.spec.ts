@@ -3,7 +3,7 @@ import {writeFileSync} from 'node:fs';
 for(const [width,height] of [[402,874],[402,714],[390,844],[430,932],[768,1024],[1440,900]]){
  test(`sample workflow and responsive layout ${width}x${height}`,async({page})=>{
   await page.setViewportSize({width,height});const external:string[]=[];page.on('request',r=>{if(!r.url().startsWith('http://127.0.0.1:5173'))external.push(r.url());});
-  await page.goto('/');await expect(page.getByRole('radiogroup',{name:'Rating'})).toBeVisible();
+  await page.goto('./');await expect(page.getByRole('radiogroup',{name:'Rating'})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const budget=await page.evaluate(()=>{
    const blocks=Array.from(document.querySelectorAll('main>.lab,main>.identity,main>.summaries,main>.album-preview,.main-controls>:scope,main>.secondary'));
@@ -29,7 +29,7 @@ for(const [width,height] of [[402,874],[402,714],[390,844],[430,932],[768,1024],
  });
 }
 test('save truthfulness, target isolation, preview drafts and keyboard modal behavior',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByRole('radiogroup',{name:'Rating'})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});await page.goto('./');await expect(page.getByRole('radiogroup',{name:'Rating'})).toBeVisible();
  await page.getByText('SAMPLE · Scenarios').click();
  await page.getByLabel('Next sample saves').selectOption('failed');
  await page.getByRole('checkbox',{name:'Suzible',exact:true}).check();await expect(page.getByRole('status')).toHaveText(/Save failed/);await expect(page.getByRole('checkbox',{name:'Suzible',exact:true})).not.toBeChecked();
@@ -42,7 +42,7 @@ test('save truthfulness, target isolation, preview drafts and keyboard modal beh
  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();await page.getByRole('button',{name:/Alternative · Soul/}).click();await expect(page.getByRole('combobox',{name:'Genre slot 1'})).toHaveValue('Alternative');
 });
 test('secondary metadata previews and unavailable album states are distinct',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByRole('radiogroup',{name:'Rating'})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});await page.goto('./');await expect(page.getByRole('radiogroup',{name:'Rating'})).toBeVisible();
  for(const [label,filename] of [['Metadata','metadata'],['Hip-Hop/Rap · R&B/Soul','genres'],['First heard · Apr 8, 2022','date'],['Playlists','playlists']]){
   await page.getByRole('button',{name:label,exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();
   expect(await page.getByRole('dialog').evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
@@ -55,7 +55,7 @@ test('secondary metadata previews and unavailable album states are distinct',asy
 });
 test('half-stars accept pointer, touch and keyboard without moving controls',async({browser})=>{
  const context=await browser.newContext({viewport:{width:402,height:714},hasTouch:true,isMobile:true,deviceScaleFactor:3});const page=await context.newPage();
- await page.goto('/');const half=page.getByRole('radio',{name:'2.5 stars',exact:true});await half.waitFor();
+ await page.goto('./');const half=page.getByRole('radio',{name:'2.5 stars',exact:true});await half.waitFor();
  await half.tap();await page.locator('.stars').screenshot({path:'test-results/half-stars-touch.png'});await expect(half).toHaveAttribute('aria-checked','true');await expect(page.getByText('2.5 / 5',{exact:true})).toBeVisible();
  await half.focus();await page.keyboard.press('ArrowRight');await expect(page.getByRole('radio',{name:'3 stars',exact:true})).toBeFocused();await expect(page.getByText('3 / 5',{exact:true})).toBeVisible();
  await page.keyboard.press('Home');await expect(page.getByText('0.5 / 5',{exact:true})).toBeVisible();await page.keyboard.press('End');await expect(page.getByText('5 / 5',{exact:true})).toBeVisible();
@@ -65,7 +65,7 @@ test('half-stars accept pointer, touch and keyboard without moving controls',asy
  await expect(page.getByRole('slider')).toHaveCount(0);await context.close();
 });
 test('standalone safe-area allowance and scroll restoration when diagnostics expand',async({page})=>{
- await page.setViewportSize({width:402,height:874});await page.goto('/');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
+ await page.setViewportSize({width:402,height:874});await page.goto('./');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
  // Explicit conservative simulation: Chrome does not emulate iOS safe-area environment values.
  await page.addStyleTag({content:'main{padding-top:62px;padding-bottom:34px}'});
  const safe=await page.evaluate(()=>({width:innerWidth,viewport:innerHeight,content:document.querySelector('main')!.getBoundingClientRect().height,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),safeTop:62,safeBottom:34}));
@@ -73,7 +73,7 @@ test('standalone safe-area allowance and scroll restoration when diagnostics exp
  await page.getByText('SAMPLE · Scenarios').click();await page.getByRole('button',{name:'More song tags'}).scrollIntoViewIfNeeded();const y=await page.evaluate(()=>scrollY);expect(y).toBeGreaterThan(0);await page.getByRole('button',{name:'More song tags'}).click();await page.keyboard.press('Escape');expect(await page.evaluate(()=>scrollY)).toBe(y);
 });
 test('reduced browser height also reserves a home-indicator safe area',async({page})=>{
- await page.setViewportSize({width:402,height:714});await page.goto('/');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
+ await page.setViewportSize({width:402,height:714});await page.goto('./');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
  await page.addStyleTag({content:'main{padding-bottom:34px}'});
  const budget=await page.evaluate(()=>({width:innerWidth,viewport:innerHeight,content:document.querySelector('main')!.getBoundingClientRect().height,document:document.documentElement.scrollHeight,overflow:Math.max(0,document.documentElement.scrollHeight-innerHeight),safeBottom:34}));
  writeFileSync('test-results/budget-reduced-safe-area.json',JSON.stringify(budget,null,2));expect(budget.overflow).toBe(0);await page.screenshot({path:'test-results/main-402x714-safe-area.png',fullPage:true});
@@ -81,7 +81,7 @@ test('reduced browser height also reserves a home-indicator safe area',async({pa
 });
 test('Album info order, fixed modal target, no writes, and Metadata simplification',async({page})=>{
  await page.setViewportSize({width:402,height:874});const external:string[]=[];page.on('request',r=>{if(!r.url().startsWith('http://127.0.0.1:5173'))external.push(r.url());});
- await page.goto('/');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
+ await page.goto('./');await page.getByRole('radiogroup',{name:'Rating'}).waitFor();
  await expect(page.getByRole('navigation').getByRole('button')).toHaveText(['More song tags ›','Metadata ›','Playlists ›']);
  const preview=page.getByRole('button',{name:/Open Album info/});await preview.click();const sheet=page.getByRole('dialog',{name:'Album info'});
  expect(await sheet.locator('h3,legend').allTextContents()).toEqual(['Album status','Collections · Read only','Album objects','Art & wallpaper','Music formats']);

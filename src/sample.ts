@@ -21,7 +21,7 @@ export class SampleService {
   const song=this.songs.get(keyOf({name:request.query.name,artist:request.query.artist,album:request.query.album}));
   if(!song||scenario==='No match') return {status:400,message:'no matches found',match:null,results:[],matches:[]};
   if(scenario==='Failed lookup'&&request.route==='/song_info') throw Error('Sample lookup failed');
-  const selection={ambiguous:scenario==='Ambiguous match',matchCount:scenario==='Ambiguous match'?2:1,policy:'persistentID-ascending',fromCache:false,warning:scenario==='Ambiguous match'?'Multiple matching records; deterministic selection is not confirmed as the intended recording.':undefined};
+  const selection={ambiguous:scenario==='Ambiguous match',matchCount:scenario==='Ambiguous match'?2:1,selectedIdentity:{libraryId:'SAMPLE',persistentID:song.name},policy:'persistentID-ascending',fromCache:scenario==='Ambiguous match',warning:scenario==='Ambiguous match'?'Multiple matching records; deterministic selection is not confirmed as the intended recording.':undefined};
   if(request.route==='/song_info') return {status:200,message:'match found',match:structuredClone(song),results:[structuredClone(song)],matches:[structuredClone(song)],selection};
   if(mode==='failed') return {status:400,outcome:'failed',code:'read_failed',message:'Simulated pre-dispatch failure; no write made'};
   if(mode==='uncertain') return {status:400,outcome:'uncertain',code:'completion_unknown',message:'Simulated timeout: completion unknown. No automatic retry.'};

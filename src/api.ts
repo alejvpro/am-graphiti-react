@@ -1,12 +1,15 @@
+import {ReadError,waitForRead,fetchJson} from './http';
+import {MAC_READ_TIMEOUT_MS} from './read-policy';
 import { allowedTags } from './tags';
 export const CONTRACT_COMMIT = '2c33cb3e7dc4954d12ae975b6d2088ac9ee7904a';
 export const REQUEST_TIMEOUT_MS = 8000;
 export type Identity = { name: string; artist: string; album: string };
 export type Song = Identity & { albumArtist: string; genre: string; grouping: string; comment: string; rating: number; loved: boolean; interpreted: { tags: string[] }; [key: string]: unknown };
-export type Selection = { ambiguous: boolean; matchCount: number; warning?: string; [key: string]: unknown };
+export type SelectedIdentity = {libraryId:string;persistentID:string};
+export type Selection = { ambiguous: boolean; matchCount: number; selectedIdentity?:SelectedIdentity; identityChanged?:boolean; warning?: string; [key: string]: unknown };
 export type Change = { field: 'rating'|'loved'|'energy'|'mood'; value: number|boolean } | { field: 'tag'; token: string; value: boolean };
 export type Request = { route: '/song_info'|'/rate'|'/loved'|'/energy'|'/mood'|'/tag'; query: Record<string,string> };
-export type Transport = (request: Request) => Promise<unknown>;
+export type Transport = (request: Request,context?:{signal?:AbortSignal}) => Promise<unknown>;
 export type WriteResult = { outcome: 'verified'|'failed'|'uncertain'; message: string; song?: Song };
 export const keyOf = (i: Identity) => JSON.stringify([i.name,i.artist,i.album]);
 export const tokensOf = (s: Song) => new Set(s.comment.split(/\s+/u).filter(Boolean));
@@ -17,10 +20,11 @@ export function normalizeSong(raw: unknown): Song {
  if(!Number.isInteger(s.rating)||s.rating<0||s.rating>100||typeof s.loved!=='boolean'||!s.interpreted||!Array.isArray(s.interpreted.tags)||!s.interpreted.tags.every(t=>typeof t==='string')) throw Error('Invalid song response');
  return structuredClone(s);
 }
-export function requestFor(target: Identity, change?: Change, refresh = false): Request {
- if(!target.name) throw Error('A song title is required');
+export function requestFor(target: Identity, change?: Change, refresh?: boolean): Request {
+ if(!['name','artist','album'].every(k=>typeof target[k as keyof Identity]==='string')||!target.name) throw Error('A song title and identity strings are required');
+ if(refresh!==undefined&&typeof refresh!=='boolean')throw Error('refresh must be Boolean');
  const query: Record<string,string> = {name:target.name,artist:target.artist,album:target.album};
- if(refresh) query.refresh='true';
+ if(refresh!==undefined) query.refresh=String(refresh);
  if(!change) return {route:'/song_info',query};
  if(change.field==='tag') {
   if(!allowedTags.has(change.token)) throw Error('Unsupported song token');
@@ -45,13 +49,35 @@ async function bounded(transport: Transport, request: Request, timeout: number):
 }
 export class LegacyClient {
  private tail = Promise.resolve();
- constructor(private transport: Transport, private timeout=REQUEST_TIMEOUT_MS) {}
- async read(target: Identity, refresh=false): Promise<{song:Song;selection?:Selection}> {
-  const raw = await bounded(this.transport,requestFor({...target},undefined,refresh),this.timeout) as Record<string,unknown>;
-  if(raw.status!==200) throw Error(String(raw.message??'Lookup failed'));
-  const song=normalizeSong(raw.match); if(keyOf(song)!==keyOf(target)) throw Error('Lookup target differs');
-  return {song,selection:raw.selection as Selection|undefined};
+ private selectedIdentities=new Map<string,SelectedIdentity>();
+ constructor(private transport: Transport, private timeout=REQUEST_TIMEOUT_MS,private readTimeout=MAC_READ_TIMEOUT_MS) {}
+ async read(target: Identity, refresh:boolean|undefined=undefined,options:{signal?:AbortSignal}={}): Promise<{song:Song;selection?:Selection}> {
+  target={...target};
+  const request=requestFor(target,undefined,refresh);
+  let raw:Record<string,unknown>;
+  try{raw=await waitForRead(signal=>this.transport(request,{signal}),this.readTimeout,options.signal) as Record<string,unknown>;}
+  catch(e){if(e instanceof ReadError)throw e;throw new ReadError('network','Mac API unavailable');}
+  try{
+   if(!raw||typeof raw!=='object'||Array.isArray(raw)||![200,400].includes(raw.status as number)||typeof raw.message!=='string'||!Array.isArray(raw.results)||!Array.isArray(raw.matches))throw Error('Invalid Mac API response envelope');
+   if(raw.status===400){
+    if(raw.match!==null||raw.matches.length!==0)throw Error('Invalid Mac API failure envelope');
+    throw new ReadError(raw.message==='no matches found'?'no-match':'failed',raw.message);
+   }
+   const song=normalizeSong(raw.match);if(!(['name','artist','album'] as const).every(k=>song[k].toLowerCase()===target[k].toLowerCase()))throw Error('Lookup target differs');
+   const selection=raw.selection===undefined?undefined:structuredClone(raw.selection) as Selection;
+   if(!selection||typeof selection!=='object'||typeof selection.ambiguous!=='boolean'||!Number.isInteger(selection.matchCount)||selection.matchCount<1||selection.warning!==undefined&&typeof selection.warning!=='string')throw Error('Invalid selection diagnostics');
+   delete selection.identityChanged; // Frontend diagnostic, never trust an envelope to set it.
+   if(selection.selectedIdentity!==undefined){
+    const id=selection.selectedIdentity;
+    if(!id||typeof id.libraryId!=='string'||!id.libraryId||typeof id.persistentID!=='string'||!id.persistentID)throw Error('Invalid selected identity');
+    const key=keyOf(target),previous=this.selectedIdentities.get(key);
+    if(previous&&(previous.libraryId!==id.libraryId||previous.persistentID!==id.persistentID))selection.identityChanged=true;
+    else this.selectedIdentities.set(key,{...id});
+   }
+   return {song,selection};
+  }catch(e){if(e instanceof ReadError)throw e;throw new ReadError('malformed',e instanceof Error?e.message:'Invalid Mac API response');}
  }
+
  write(target: Identity, change: Change): Promise<WriteResult> {
   const captured={name:target.name,artist:target.artist,album:target.album};
   const request=requestFor(captured,change);
@@ -59,15 +85,14 @@ export class LegacyClient {
   this.tail=result.then(()=>{}); return result;
  }
 }
-// Unused by App. Future activation requires a separately authorized transport milestone.
-// No endpoint or credential is embedded; disabled is the only R1 configuration.
+// Compatibility factory, unused by App. Disabled by default and read-only when enabled.
+// No endpoint or credential is embedded. App uses the stricter integration transport.
 export function createRealTransport(baseUrl: string, enabled = false, fetcher: typeof fetch = fetch): Transport {
- return async request => {
+ return async (request,context) => {
   if (!enabled) throw Error('Live transport disabled in R1. No HTTP request was sent.');
+  if(request.route!=='/song_info')throw Error('Read-only integration blocks all mutations');
   const url = new URL(encodeLegacyRequest(request), baseUrl);
-  const response = await fetcher(url, {method:'GET', cache:'no-store', redirect:'error'});
-  if (!response.ok) throw Error(`HTTP ${response.status}; mutation completion may be unknown`);
-  return response.json();
+  return fetchJson(url,fetcher,'Mac API',context?.signal?null:MAC_READ_TIMEOUT_MS,context?.signal);
  };
 }
 export function inactiveRealTransport(_request: Request): Promise<never> {

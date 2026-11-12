@@ -18,14 +18,14 @@ export function project(entry:Entry):Song {
 export class SongStore {
  entries:Record<string,Entry>={}; private listeners=new Set<()=>void>(); private version=0; private sequence=0;
  private tail=Promise.resolve();
- constructor(public client:LegacyClient) {}
+ constructor(public client:LegacyClient,public readonly readOnly=false) {}
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn);};};
  snapshot=()=>this.version;
  private emit(){this.version++;this.listeners.forEach(f=>f());}
- load(song:Song,selection?:Selection){const key=keyOf(song);if(this.entries[key]?.pending.length)return;this.entries[key]={song,pending:[],status:'Sample loaded · no live connection',uncertain:false,stale:this.entries[key]?.stale??false,selection,revision:this.entries[key]?.revision??0};this.emit();}
+ load(song:Song,selection?:Selection){const key=keyOf(song);if(this.entries[key]?.pending.length)return;if(selection?.identityChanged&&this.entries[key]){this.entries[key].selection={...selection};this.entries[key].status='Read-only · Selection changed; previous metadata retained';this.emit();return;}this.entries[key]={song,pending:[],status:this.readOnly?'Read-only · Library loaded':'Sample loaded · no live connection',uncertain:false,stale:this.entries[key]?.stale??false,selection,revision:this.entries[key]?.revision??0};this.emit();}
  refreshMembership(key:string){const e=this.entries[key];if(e){e.stale=false;this.emit();}}
  edit(target:Identity,change:Change) {
-  const key=keyOf(target), entry=this.entries[key];if(!entry||entry.uncertain)return Promise.resolve();
+  const key=keyOf(target), entry=this.entries[key];if(this.readOnly||!entry||entry.uncertain)return Promise.resolve();
   const id=++this.sequence;entry.revision++;entry.pending.push({id,change});entry.status='Saving sample…';entry.stale=true;this.emit();
   const task=this.tail.then(async()=>{
    const current=this.entries[key];
