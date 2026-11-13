@@ -94,3 +94,37 @@ dialog{border:0;border-radius:16px 16px 0 0;width:min(540px,100%);max-width:100%
 .rating-positions button[aria-checked=true]{background:var(--blue);border-color:var(--blue);color:white;box-shadow:inset 0 0 0 2px white; font-weight:800}
 .rating-line>.heart{position:static;flex:0 0 calc((100% - 22px)/12);width:calc((100% - 22px)/12);font-size:25px}
 @media(min-width:768px){.rating-line{display:flex;gap:4px;max-width:900px}.rating-positions{flex:1;grid-template-columns:repeat(11,minmax(0,1fr))}.rating-line>.heart{position:static;flex:0 0 44px;width:44px}}
+
+/* System appearance only: keep surfaces unlit, including desktop and sheet safe areas. */
+@media(prefers-color-scheme:dark){
+ :root{color-scheme:dark;color:#c8c8c8;background:#000;--border:#30343b;--blue:#7099c7;--muted:#8f98a5}
+ html,body,#root,main,dialog,.sheet-header,.sheet-content{background:#000;color:#c8c8c8}
+ main{border-color:#252930}
+ button,input,select,.segments button,.check,.album-status-segments label,.slot-number,.date-label input,.genre-row input{background:#000;color:#c8c8c8;border-color:var(--border)}
+ button:hover{border-color:#7099c7}
+ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline-color:#96b8df}
+ button[aria-pressed=true],.segments button[aria-pressed=true],.rating-positions button[aria-checked=true],.check:has(input:checked),.radio-row:has(input:checked),.album-status-segments label:has(input:checked){background:#000;color:#9bbce1;border-color:#7099c7}
+ button[aria-pressed=true],.rating-positions button[aria-checked=true]{box-shadow:inset 0 -2px 0 #7099c7;font-weight:700}
+ .segments button[aria-pressed=true]{text-decoration:underline;text-underline-offset:3px}
+ input[type=checkbox],input[type=radio]{accent-color:#7099c7}
+ button:disabled,.editor-footer button:disabled,.check:has(input:disabled){background:#000;color:#858e9c;border-color:#30343b}
+ .check:has(input:disabled:checked),button[aria-pressed=true]:disabled,.rating-positions button[aria-checked=true]:disabled{background:#000;color:#91a6bf;border-color:#526b87}
+ .heart,.heart[aria-pressed=true]{background:#000;color:#c77589;border-color:var(--border);box-shadow:none}
+ .heart:disabled{color:#8d6871}
+ .heart[aria-pressed=true]:disabled{color:#b6818e}
+ .album-preview,.main-controls fieldset,.rating-section,fieldset,.sheet-header,.radio-row,.playlist-list,.playlist-list li,.object-card{border-color:#30343b}
+ .sheet-header:before{background:#414750}
+ .rating-section h2 small{color:#c8c8c8}
+ .lab,.sheet-header p{color:#9ba9bb}
+ .save-status{color:#8bad94}
+ .identity.has-error>.save-status,.lookup-progress p{color:#d5aa76}
+ .notice,.scope,.warning{background:#000;color:#a7b7cd;box-shadow:inset 0 0 0 1px #304153}
+ .warning{color:#d5aa76;box-shadow:inset 0 0 0 1px #665038}
+ .playlist-refresh,.sheet-content button:has(+.warning){background:#000;color:#9bbce1;border-color:#526b87}
+ dialog{box-shadow:0 0 0 1px #30343b}
+ dialog::backdrop{background:#000c}
+ .icon-minid{background:linear-gradient(125deg,#15202899,#000);border-color:#43505d}
+ .icon-cd .artwork{border-color:#697182;background:#28313e}
+ .tape-reels{background:linear-gradient(#805e51 55%,#555d68 56%);border-color:#6f7a88;box-shadow:2px 3px 2px #15191f}
+ .object-status:before{background:#727c8a}.object-status.active:before{background:#c59a59}.object-status.owned:before{background:#7099c7}
+}

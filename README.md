@@ -36,3 +36,5 @@ R2.3 adds explicitly configured `VITE_PLAYBACK_MODE=write-enabled` for supported
 R2.4 replaces split stars with eleven labeled rating positions (0/unset through 5) and independent Favorite. Phone targets use two rows at 44px height; this adds 32px of natural scrolling at 402×714 while 402×874 and 390×844 still fit. See the measured R2.4 section in the design reconciliation notes.
 
 R2.4.1 experiments with a single row: `0 | ½ | 1 | ½ | 2 | ½ | 3 | ½ | 4 | ½ | 5 | ♥`. Accessible labels retain full values; 29–30×44px phone targets restore zero normal overflow at the three tested iPhone sizes. Physical touch acceptance for this narrower variant remains pending.
+
+R2.5 follows system appearance automatically with true-black backgrounds and restrained selected states. No theme switch or reload is needed. See [appearance palette, validation and local preview](docs/appearance.md); native iPhone launch/status-bar presentation still needs physical confirmation.

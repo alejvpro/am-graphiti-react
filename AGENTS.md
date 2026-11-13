@@ -40,3 +40,9 @@
 - Keep .env.local unchanged during implementation. Mock all Last.fm, public-IP and Mac traffic. Build browser-test static output with `VITE_PLAYBACK_MODE=sample npm run build` so personal read-only configuration does not activate the production fixture preview.
 - network routing lives in routing.ts: bounded legacy IP query, configurable home public-IP reference, cached until resume/online/connection-change, manual overrides and Automatic. No /alive or write probes. Changed WAN IP requires updating the reference; detection failure falls back visibly to External.
 - Live controls retain confirmed values until verified; pending live edits block repeated taps. Capture tuple and transport origin at submission, serialize writes, and never retry uncertainty. Refresh reconciles; duplicate identity changes retain prior metadata and block further edits. Route changes require a metadata read before further live editing.
+
+## R2.5 appearance
+
+- Use CSS prefers-color-scheme, color-scheme and media-qualified theme-color metadata. Keep critical initial black background in index.html to avoid an app-controlled white flash before assets load. No theme framework, local-storage override or appearance state is needed.
+- Dark surfaces and buttons are #000000; use off-white text, muted blue outlines/indicators and native checked states rather than bright filled controls. Preserve light styling, geometry, rating targets and focus visibility. Keep sheets, native form fields, disabled/selected/error states and safe areas themed.
+- Browser theme tests intercept all external requests, emulate light/dark and live changes, and capture ignored screenshots. Preview must use sample fixtures; never launch personal live configuration as part of visual review. See docs/appearance.md.
